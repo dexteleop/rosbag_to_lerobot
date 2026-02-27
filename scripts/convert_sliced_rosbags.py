@@ -73,7 +73,6 @@ class MultiVideoRosBag2LeRobotConverter:
             'left_color': '/left/color/image_raw/ffmpeg',
             'right_color': '/right/color/image_raw/ffmpeg',
             'head_camera': '/xr_video_topic/ffmpeg',
-            # 'chest_camera': '/head/color/image_raw/ffmpeg',
         }
 
         # Initialize LeRobot dataset (will be created once)
