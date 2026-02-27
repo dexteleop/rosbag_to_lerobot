@@ -143,8 +143,6 @@ rosbag_to_lerobot/
 ├── scripts/
 │   ├── convert_rosbag_with_markers.py   # Convert rosbags with X/Y episode markers
 │   ├── convert_sliced_rosbags.py        # Convert pre-sliced rosbag segments
-│   ├── merge_datasets.py                # Merge multiple datasets
-│   └── delete_wrong_episodes.py         # Delete specific episodes
 ├── lerobot/                             # Modified LeRobot library
 ├── environment.yml                      # Conda environment specification
 ├── README.md                            # This file
