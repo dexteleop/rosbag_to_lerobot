@@ -7,7 +7,7 @@
 [![LeRobot 0.3.3](https://img.shields.io/badge/LeRobot-0.3.3-orange.svg)](https://github.com/huggingface/lerobot)
 [![Dataset v2.1](https://img.shields.io/badge/Dataset%20Format-v2.1-orange.svg)](https://github.com/huggingface/lerobot)
 
-A toolkit for converting ROS2 bag files to LeRobot dataset format v2.1.
+A toolkit for converting ROS2 bag files to LeRobot dataset format v2.1, designed for the Dexteleop TeleAvatar Lite teleoperation robot.
 
 ## 📑 Table of Contents
 
