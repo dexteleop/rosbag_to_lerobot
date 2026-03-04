@@ -551,7 +551,7 @@ class MultiVideoRosBag2LeRobotConverter:
                                     for camera_key in self.video_topics.keys():
                                         video_key = f"observation.images.{camera_key}"
 
-                                        width, height, _ = self.get_camera_resolution(camera_key)
+                                        height, width, _ = self.get_camera_resolution(camera_key)
 
                                         video_path = self.dataset.root / self.dataset.meta.get_video_file_path(
                                             self.dataset.num_episodes, video_key
