@@ -518,6 +518,9 @@ class MultiVideoRosBag2LeRobotConverter:
                                 self.dataset.episode_buffer = self.dataset.create_episode_buffer()
                                 packet_buffer = VideoPacketBuffer(root_dir=self.dataset.root, fps=self.dataset.fps)
 
+                                is_in_adding_phase = False
+                                frame_data.clear()
+
                             if (previous_buttons[y_button] == 0 and buttons[y_button] == 1 and is_recording):
                                 is_recording = False
                                 reader.set_filter(non_recording_filter)
