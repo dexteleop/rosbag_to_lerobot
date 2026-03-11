@@ -156,18 +156,18 @@ class MultiVideoRosBag2LeRobotConverter:
                 folder_count += 1
                 
                 file_extensions = {Path(f).suffix.lower() for f in filenames}
-                has_db3 = '.db3' in file_extensions
+                has_bag = '.db3' in file_extensions or '.mcap' in file_extensions
                 has_yaml = '.yaml' in file_extensions or '.yml' in file_extensions
-                
-                if has_db3 and has_yaml:
+
+                if has_bag and has_yaml:
                     rosbag_folders.append(str(current_dir))
                     dirnames.clear()
 
             if rosbag_folders:
-                # Find .db3 files in rosbag directory
+                # Find .db3 or .mcap files in rosbag directory
                 for rosbag_dir in rosbag_folders:
                     rosbag_dir = Path(rosbag_dir)
-                    db3_files = list(rosbag_dir.glob("*.db3"))
+                    db3_files = list(rosbag_dir.glob("*.db3")) or list(rosbag_dir.glob("*.mcap"))
                     if db3_files:
                         for db3_file in db3_files:
                             rosbags.append({
@@ -178,7 +178,7 @@ class MultiVideoRosBag2LeRobotConverter:
 
         else:
             # one rosbag
-            db3_files = list(self.input_directory.glob("*.db3"))
+            db3_files = list(self.input_directory.glob("*.db3")) or list(self.input_directory.glob("*.mcap"))
             for i, db3_file in enumerate(sorted(db3_files)):
                 rosbags.append({
                     'name': f"episode_{i:03d}",
@@ -443,7 +443,9 @@ class MultiVideoRosBag2LeRobotConverter:
 
         # Initialize ROS2 bag reader
         try:
-            storage_options = StorageOptions(uri=rosbag['path'], storage_id='sqlite3')
+            bag_file = rosbag['bag_file']
+            storage_id = 'mcap' if bag_file.endswith('.mcap') else 'sqlite3'
+            storage_options = StorageOptions(uri=rosbag['path'], storage_id=storage_id)
             converter_options = ConverterOptions('','')
             reader = SequentialReader()
             reader.open(storage_options, converter_options)
@@ -500,6 +502,9 @@ class MultiVideoRosBag2LeRobotConverter:
 
                                 episode_state_target_t = start_time + self.frame_duration
                                 episode_action_target_t = episode_state_target_t + ACTION_OFFSET_RATIO * self.frame_duration
+
+                                is_in_adding_phase = False
+                                frame_data.clear()
 
                                 self.dataset.episode_buffer = self.dataset.create_episode_buffer()
                                 packet_buffer = VideoPacketBuffer(root_dir=self.dataset.root, fps=self.dataset.fps)
