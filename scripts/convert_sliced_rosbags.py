@@ -53,7 +53,7 @@ except ImportError as e:
     sys.exit(1)
 
 # Constants
-STATE_ACTION_DIM = 48
+STATE_ACTION_DIM = 62
 
 class MultiVideoRosBag2LeRobotConverter:
     """Enhanced converter for multiple ROS2 bags to single LeRobot dataset with multiple episodes."""
@@ -149,21 +149,26 @@ class MultiVideoRosBag2LeRobotConverter:
             "left_joint1_effort", "left_joint2_effort", "left_joint3_effort", "left_joint4_effort",
             "left_joint5_effort", "left_joint6_effort", "left_joint7_effort", "left_gripper_effort",
             "right_joint1_effort", "right_joint2_effort", "right_joint3_effort", "right_joint4_effort",
-            "right_joint5_effort", "right_joint6_effort", "right_joint7_effort", "right_gripper_effort"
+            "right_joint5_effort", "right_joint6_effort", "right_joint7_effort", "right_gripper_effort",
+            # ee poses (14)
+            "left_ee_position_x", "left_ee_position_y", "left_ee_position_z",
+            "left_ee_orientation_x", "left_ee_orientation_y", "left_ee_orientation_z", "left_ee_orientation_w",
+            "right_ee_position_x", "right_ee_position_y", "right_ee_position_z",
+            "right_ee_orientation_x", "right_ee_orientation_y", "right_ee_orientation_z", "right_ee_orientation_w",
         ]
 
-        # ACTION features (48-dim)
+        # ACTION features (62-dim)
         features["action"] = {
             "dtype": "float32",
-            "shape": (48,),
-            "names": {"motors": feature_names}
+            "shape": (STATE_ACTION_DIM,),
+            "names": feature_names
         }
 
-        # OBSERVATION features (48-dim)
+        # OBSERVATION features (62-dim)
         features["observation.state"] = {
             "dtype": "float32",
-            "shape": (48,),
-            "names": {"motors": feature_names}
+            "shape": (STATE_ACTION_DIM,),
+            "names": feature_names
         }
 
         # NEXT.DONE feature - episode termination marker
@@ -218,7 +223,9 @@ class MultiVideoRosBag2LeRobotConverter:
             '/left_arm/joint_cmd', '/right_arm/joint_cmd',
             '/left_gripper/joint_cmd', '/right_gripper/joint_cmd',
             '/left_arm/joint_states', '/right_arm/joint_states',
-            '/left_gripper/joint_states', '/right_gripper/joint_states'
+            '/left_gripper/joint_states', '/right_gripper/joint_states',
+            '/left_arm/current_ee_pose', '/right_arm/current_ee_pose',
+            '/left_arm/target_ee_pose', '/right_arm/target_ee_pose',
         ]
 
         video_topics = list(self.video_topics.values())
@@ -400,6 +407,13 @@ class MultiVideoRosBag2LeRobotConverter:
         effort = msg.effort[0] if msg.effort else 0.0
         return np.array([pos, vel, effort], dtype=np.float32)
 
+    def extract_ee_pose_data(self, msg: Pose):
+        """Extract end-effector pose data (position + orientation)."""
+        return np.array([
+            msg.position.x, msg.position.y, msg.position.z,
+            msg.orientation.x, msg.orientation.y, msg.orientation.z, msg.orientation.w
+        ], dtype=np.float32)
+
     def create_frame_at_time(self, target_time: float, all_messages: dict, video_packets: dict, is_last_frame: bool = False):
         """Create a frame with state, action, and video data at the specified time."""
         frame_data = {}
@@ -440,6 +454,16 @@ class MultiVideoRosBag2LeRobotConverter:
             state_data[47] = gripper_data[2]
         state_idx = max(state_idx, idx)
 
+        left_ee_pose_msg, idx = self.find_closest_state_message(target_time, all_messages.get('/left_arm/current_ee_pose', []))
+        if left_ee_pose_msg:
+            state_data[48:55] = self.extract_ee_pose_data(left_ee_pose_msg)
+        state_idx = max(state_idx, idx)
+
+        right_ee_pose_msg, idx = self.find_closest_state_message(target_time, all_messages.get('/right_arm/current_ee_pose', []))
+        if right_ee_pose_msg:
+            state_data[55:62] = self.extract_ee_pose_data(right_ee_pose_msg)
+        state_idx = max(state_idx, idx)
+
         frame_data["observation.state"] = state_data
         frame_data["next.done"] = np.array([is_last_frame], dtype=bool)
         video_frame_idx_dict = {}
@@ -453,7 +477,6 @@ class MultiVideoRosBag2LeRobotConverter:
             frame_data[f"observation.images.{camera_key}"] = black_frame
         observation_idx = max(video_frame_idx_dict.values())
 
-        target_time = max(state_idx, observation_idx)
         left_arm_cmd_msg = self.find_closest_action_message(target_time, all_messages.get('/left_arm/joint_cmd', []))
         if left_arm_cmd_msg:
             joint_data = self.extract_joint_data(left_arm_cmd_msg)
@@ -481,6 +504,14 @@ class MultiVideoRosBag2LeRobotConverter:
             action_data[15] = gripper_data[0]
             action_data[31] = gripper_data[1]
             action_data[47] = gripper_data[2]
+
+        left_target_ee_pose_msg = self.find_closest_action_message(target_time, all_messages.get('/left_arm/target_ee_pose', []))
+        if left_target_ee_pose_msg:
+            action_data[48:55] = self.extract_ee_pose_data(left_target_ee_pose_msg)
+
+        right_target_ee_pose_msg = self.find_closest_action_message(target_time, all_messages.get('/right_arm/target_ee_pose', []))
+        if right_target_ee_pose_msg:
+            action_data[55:62] = self.extract_ee_pose_data(right_target_ee_pose_msg)
 
         frame_data["action"] = action_data
 
@@ -563,6 +594,7 @@ class MultiVideoRosBag2LeRobotConverter:
                         codec=packet['encoding'],
                     )
 
+            episode_length = 0
             for _, packet_list in packet_buffer.packets.items():
                 episode_length = len(packet_list)
                 break
@@ -575,7 +607,7 @@ class MultiVideoRosBag2LeRobotConverter:
             for cam_name, _ in video_packets.items():
                 video_key = f"observation.images.{cam_name}"
 
-                width, height, _ = self.get_camera_resolution(cam_name)
+                height, width, _ = self.get_camera_resolution(cam_name)
 
                 video_path = self.dataset.root / self.dataset.meta.get_video_file_path(
                     self.dataset.num_episodes, video_key
