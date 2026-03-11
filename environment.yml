@@ -397,6 +397,7 @@ dependencies:
   - ros-humble-lifecycle-msgs=1.2.1=np126py311hbc2a38a_13
   - ros-humble-logging-demo=0.20.5=np126py311hbc2a38a_13
   - ros-humble-map-msgs=2.1.0=np126py311hbc2a38a_13
+  - ros-humble-mcap-vendor=0.15.14=np126py311hbc2a38a_13
   - ros-humble-message-filters=4.3.7=np126py311hbc2a38a_13
   - ros-humble-nav-msgs=4.9.0=np126py311hbc2a38a_13
   - ros-humble-orocos-kdl-vendor=0.2.5=np126py311hbc2a38a_13
@@ -470,6 +471,7 @@ dependencies:
   - ros-humble-rosbag2-py=0.15.14=np126py311hbc2a38a_13
   - ros-humble-rosbag2-storage=0.15.14=np126py311hbc2a38a_13
   - ros-humble-rosbag2-storage-default-plugins=0.15.14=np126py311hbc2a38a_13
+  - ros-humble-rosbag2-storage-mcap=0.15.14=np126py311hbc2a38a_13
   - ros-humble-rosbag2-transport=0.15.14=np126py311hbc2a38a_13
   - ros-humble-rosgraph-msgs=1.2.1=np126py311hbc2a38a_13
   - ros-humble-rosidl-adapter=3.1.6=np126py311hbc2a38a_13
